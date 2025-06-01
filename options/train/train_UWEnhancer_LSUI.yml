@@ -1,0 +1,137 @@
+# TODO
+# general settings
+name: 01_UWEnhancer_LSUI
+model_type: UIEPhyModel
+scale: 1
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+manual_seed: 10
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: LSUI
+    type: PairedImageDataset
+    dataroot_gt: datasets/LSUI/GT
+    dataroot_lq: datasets/LSUI/input
+    meta_info_file: basicsr/data/meta_info/meta_info_LSUI_train.txt
+    filename_tmpl: '{}'
+    io_backend:
+      type: disk
+
+    gt_size: 256
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 8
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  # val:
+  #   name: UIID
+  #   type: PairedImageDataset
+  #   dataroot_gt: datasets/UIID/GT
+  #   dataroot_lq: datasets/UIID/input
+  #   meta_info_file: basicsr/data/meta_info/meta_info_UIID_test.txt
+  #   io_backend:
+  #     type: disk
+  #   gt_size: 256
+
+  val:
+    name: LSUI
+    type: PairedImageDataset
+    dataroot_gt: datasets/LSUI/GT
+    dataroot_lq: datasets/LSUI/input
+    meta_info_file: basicsr/data/meta_info/meta_info_LSUI_test.txt
+    io_backend:
+      type: disk
+    gt_size: 256
+
+  # val_2:
+  #   name: UIID
+  #   type: PairedImageDataset
+  #   dataroot_gt: datasets/UIID/GT
+  #   dataroot_lq: datasets/UIID/input
+  #   meta_info_file: basicsr/data/meta_info/meta_info_UIID_test.txt
+  #   io_backend:
+  #     type: disk
+  #   gt_size: 256
+
+# network structures
+network_g:
+  type: UWEnhancer
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  optim_g:
+    type: Adam
+    lr: !!float 5e-5
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [32000]
+    gamma: 0.5
+
+  total_iter: 40000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+  # depth_opt:
+  #   type: ScaleAndShiftInvariantLoss
+  #   loss_weight: 0.5
+  # backscatter_opt:
+  #   type: BackscatterLoss
+  #   loss_weight: 0.2
+  # perceptual_opt:
+  #   type: PerceptualLoss
+  #   layer_weights:
+  #     'conv5_4': 1  # before relu
+  #   vgg_type: vgg19
+  #   use_input_norm: true
+  #   range_norm: false
+  #   perceptual_weight: 1.0
+  #   style_weight: 0
+  #   criterion: l1
+  
+
+# validation settings
+val:
+  val_freq: !!float 2e4
+  save_img: true
+
+  metrics:
+    psnr:
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+
+# logging settings
+logger:
+  print_freq: 100
+  save_checkpoint_freq: !!float 2e4
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
